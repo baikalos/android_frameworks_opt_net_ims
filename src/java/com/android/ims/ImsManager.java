@@ -1333,9 +1333,11 @@ public class ImsManager implements FeatureUpdates {
     public int getWfcMode(boolean roaming) {
         int setting;
         if (!roaming) {
+
             // The WFC mode is not editable, return the default setting in the CarrierConfig, not
             // the user set value.
-            if (!getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_WFC_MODE_BOOL)) {
+            if (!(getBooleanCarrierConfig(CarrierConfigManager.KEY_EDITABLE_WFC_MODE_BOOL) &&
+                  SystemProperties.getInt("persist.baikal.ims.force_wfc",0) == 0)) {
                 setting = getIntCarrierConfig(
                         CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_MODE_INT);
 
@@ -1348,8 +1350,9 @@ public class ImsManager implements FeatureUpdates {
             if (getBooleanCarrierConfig(
                     CarrierConfigManager.KEY_USE_WFC_HOME_NETWORK_MODE_IN_ROAMING_NETWORK_BOOL)) {
                 setting = getWfcMode(false);
-            } else if (!getBooleanCarrierConfig(
-                    CarrierConfigManager.KEY_EDITABLE_WFC_ROAMING_MODE_BOOL)) {
+            } else if (!(getBooleanCarrierConfig(
+                    CarrierConfigManager.KEY_EDITABLE_WFC_ROAMING_MODE_BOOL) && 
+                    SystemProperties.getInt("persist.baikal.ims.force_wfc",0) == 0)) {
                 setting = getIntCarrierConfig(
                         CarrierConfigManager.KEY_CARRIER_DEFAULT_WFC_IMS_ROAMING_MODE_INT);
             } else {
@@ -1531,6 +1534,9 @@ public class ImsManager implements FeatureUpdates {
      * instead.
      */
     public static boolean isWfcEnabledByPlatform(Context context) {
+        boolean force = SystemProperties.getInt("persist.baikal.ims.force_wfc",0) != 0;
+        if( force ) return true;
+
         DefaultSubscriptionManagerProxy p = new DefaultSubscriptionManagerProxy(context);
         ImsManager mgr = ImsManager.getInstance(context, p.getDefaultVoicePhoneId());
         if (mgr != null) {
@@ -1569,7 +1575,8 @@ public class ImsManager implements FeatureUpdates {
      */
     public boolean isCrossSimEnabledByPlatform() {
         if (isWfcEnabledByPlatform()) {
-            return getBooleanCarrierConfig(
+            boolean force = SystemProperties.getInt("persist.baikal.ims.force_cs",0) != 0;
+            return force || getBooleanCarrierConfig(
                     CarrierConfigManager.KEY_CARRIER_CROSS_SIM_IMS_AVAILABLE_BOOL);
         }
         return false;
